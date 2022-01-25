@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { navItems } from "../static/navItems";
 const Sidebar = () => {
+  const [activeIcon, setActiveIcon] = useState(navItems[0].title);
   return (
     <Wrapper>
       <LogoContainer>
