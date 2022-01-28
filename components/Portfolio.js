@@ -4,35 +4,27 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { coins } from "../static/coins";
 import Coin from "./Coin";
 import BalanceChart from "./BalanceChart";
-import { ThirdwebSDK } from "@3rdweb/sdk";
-import { ethers } from "ethers";
 
-const sdk = new ThirdwebSDK(
-  new ethers.Wallet(
-    process.env.NEXT_PRIVATE_METAMASK_KEY,
-    ethers.getDefaultProvider(
-      "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-    )
-  )
-);
+const Portfolio = ({ thirdWebTokens, sanityTokens, walletAddress }) => {
+  const [walletBalance, setWalletBalance] = useState(0);
+  const tokenToINR = {};
+  for (const token of sanityTokens) {
+    tokenToINR[token.contractAddress] = Number(token.inrPrice);
+  }
 
-const Portfolio = () => {
-  const [sanityTokens, setSanityTokens] = useState([]);
-  const [thirdWebTokens, setThirdWebTokens] = useState([]);
   useEffect(() => {
-    const getSanityAndThirdWebTokens = async () => {
-      const coins = await fetch(
-        "https://tlo96hsy.api.sanity.io/v1/data/query/production?query=*%5B_type%3D%3D'coins'%5D%7B%0A%20%20name%2C%0A%20%20usdPrice%2C%0A%20%20contractAddress%2C%0A%20%20symbol%2C%0A%20%20logo%0A%7D"
+    const calculateTotalBalance = async () => {
+      const totalBalance = await Promise.all(
+        thirdWebTokens.map(async (token) => {
+          const balance = await token.balanceOf(walletAddress);
+          return Number(balance.displayValue) * tokenToINR[token.address];
+        })
       );
-      const sanityTokens = (await coins.json()).result;
-      setSanityTokens(sanityTokens);
-
-      sanityTokens.map((token) =>
-        console.log(sdk.getTokenModule(token.contractAddress))
-      );
+      setWalletBalance(totalBalance.reduce((acc, curr) => acc + curr, 0));
     };
-    return getSanityAndThirdWebTokens();
-  }, []);
+    return calculateTotalBalance();
+  }, [thirdWebTokens, sanityTokens]);
+
   return (
     <Wrapper>
       <Content>
@@ -41,9 +33,8 @@ const Portfolio = () => {
             <Balance>
               <BalanceTitle>Portfolio balance</BalanceTitle>
               <BalanceValue>
-                {"INR"}
-                {/* {walletBalance.toLocaleString()} */}
-                45,000
+                {"INR "}
+                {walletBalance.toLocaleString()}
               </BalanceValue>
             </Balance>
           </div>
