@@ -1,9 +1,42 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { FaWallet } from "react-icons/fa";
-const Transfer = () => {
+import imageUrlBuilder from "@sanity/image-url";
+import { client } from "../../lib/sanity";
+const Transfer = ({
+  selectedToken,
+  setAction,
+  thirdWebTokens,
+  walletAddress,
+}) => {
+  const [imageUrl, setImageUrl] = useState(null);
   const [amount, setAmount] = useState();
   const [recipient, setRecipient] = useState("");
+  const [activeThirdWebToken, setActiveThirdWebToken] = useState();
+  const [balance, setBalance] = useState("Fetching...");
+
+  useEffect(() => {
+    const activeToken = thirdWebTokens.find(
+      (token) => token.address === selectedToken.contractAddress
+    );
+    setActiveThirdWebToken(activeToken);
+  }, [thirdWebTokens, selectedToken]);
+
+  useEffect(() => {
+    const url = imageUrlBuilder(client).image(selectedToken.logo).url();
+    setImageUrl(url);
+  }, [selectedToken]);
+
+  useEffect(() => {
+    const getBalance = async () => {
+      const balance = await activeThirdWebToken.balanceOf(walletAddress);
+      setBalance(balance.displayValue);
+      console.log(balance.displayValue);
+    };
+    if (activeThirdWebToken) {
+      getBalance();
+    }
+  }, [activeThirdWebToken]);
   return (
     <Wrapper>
       <Amount>
@@ -36,8 +69,10 @@ const Transfer = () => {
         <Row>
           <FieldName>Pay with</FieldName>
           <CoinSelectList>
-            <Icon>{/* <img src="{}" alt="" /> */}</Icon>
-            <CoinName>Ethereum</CoinName>
+            <Icon>
+              <img src={imageUrl} alt="" />
+            </Icon>
+            <CoinName>{selectedToken.name}</CoinName>
           </CoinSelectList>
         </Row>
       </TransferForm>
@@ -45,8 +80,10 @@ const Transfer = () => {
         <Continue>Continue</Continue>
       </Row>
       <Row>
-        <BalanceTitle>ETH Balance</BalanceTitle>
-        <Balance>0.00</Balance>
+        <BalanceTitle>{selectedToken.symbol} Balance</BalanceTitle>
+        <Balance>
+          {balance} {selectedToken.symbol}
+        </Balance>
       </Row>
     </Wrapper>
   );
